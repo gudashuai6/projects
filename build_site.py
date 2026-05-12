@@ -144,37 +144,41 @@ org_result = subprocess.run(
 org_repo_names = {r['name'].lower() for r in json.loads(org_result.stdout)}
 
 def check_transfer(p):
-    """Check if repo is in D2RS-2026spring org. Returns (transferred, is_student_repo)."""
+    """Check if repo is in D2RS-2026spring org. Returns (transferred, is_student_repo, has_repo)."""
     repo = p.get('repo')
     if not repo:
-        return True, False  # no repo link
+        return False, False, False  # no repo link at all
     owner, name = repo.split('/', 1)
     if owner.lower() == 'd2rs-2026spring':
-        return True, True
+        return True, True, True
     if name.lower() in org_repo_names:
-        return True, True
+        return True, True, True
     # Check via API (handles redirects from transfers)
     try:
         r = subprocess.run(
             ['gh', 'api', f'repos/{owner}/{name}', '--jq', '.owner.login'],
             capture_output=True, text=True, timeout=10)
         if r.returncode == 0 and r.stdout.strip().lower() == 'd2rs-2026spring':
-            return True, True
+            return True, True, True
     except Exception:
         pass
     # Is the owner one of our students?
     is_student = owner in github_to_id  # github_to_id maps username → student ID
-    return False, is_student
+    return False, is_student, True
 
 for p in unique:
-    transferred, is_student = check_transfer(p)
+    transferred, is_student, has_repo = check_transfer(p)
     p['transferred'] = transferred
     p['is_student_repo'] = is_student
-    if not transferred and is_student:
+    p['has_repo'] = has_repo
+    if not has_repo:
+        print(f"   NO repo: #{p['num']} {p['title'][:40]}")
+    elif not transferred and is_student:
         print(f"   NOT transferred (student): #{p['num']} repo={p.get('repo','')}")
 need_transfer = [p for p in unique if not p['transferred'] and p['is_student_repo']]
+no_repo = [p for p in unique if not p['has_repo']]
 submitted_count = sum(1 for p in unique if p['transferred'])
-print(f"   submitted: {submitted_count}, need transfer: {len(need_transfer)}")
+print(f"   submitted: {submitted_count}, need transfer: {len(need_transfer)}, no repo: {len(no_repo)}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 4. Hand-curated clean descriptions (keyed by issue number)
@@ -387,7 +391,9 @@ for p in unique:
 
     # Transfer warning
     transfer_warn = ''
-    if not p.get('transferred', True) and p.get('is_student_repo', False):
+    if not p.get('has_repo', True):
+        transfer_warn = '<div class="transfer-warn transfer-no-repo">⚠ 未提供 GitHub 仓库链接</div>'
+    elif not p.get('transferred', True) and p.get('is_student_repo', False):
         transfer_warn = '<div class="transfer-warn">⚠ 仓库尚未移交到 D2RS-2026spring 组织</div>'
 
     cards_html += f'''
@@ -496,6 +502,7 @@ body{{font-family:'Noto Sans SC',system-ui,sans-serif;background:var(--bg);color
 
 /* transfer warning */
 .transfer-warn{{margin:0 16px;padding:6px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:.76rem;color:#856404;font-weight:500}}
+.transfer-no-repo{{background:#f8d7da;border-color:#f5c6cb;color:#721c24}}
 
 /* footer links */
 .card-foot{{padding:8px 16px 12px;border-top:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;gap:6px}}
@@ -563,7 +570,7 @@ footer{{text-align:center;padding:26px 20px;font-size:.78rem;color:var(--txt2);b
     <thead><tr><th>学号</th><th>姓名</th><th>GitHub</th></tr></thead>
     <tbody>{ns_rows}</tbody>
   </table>
-  {f'<div class="reminder" style="margin-top:20px"><strong>⚠ 提醒：</strong>以下 {len(need_transfer)} 个项目的仓库仍在个人账号下，请尽快移交到 <a href="https://github.com/D2RS-2026spring" target="_blank">D2RS-2026spring 组织</a>。在卡片中带有 ⚠ 标记的即为需要移交的项目。</div>' if need_transfer else ''}
+  {f'<div class="reminder" style="margin-top:20px"><strong>⚠ 提醒：</strong>以下 {len(no_repo)} 个项目未提供 GitHub 仓库链接，{len(need_transfer)} 个项目的仓库仍在个人账号下，请尽快移交到 <a href="https://github.com/D2RS-2026spring" target="_blank">D2RS-2026spring 组织</a>。卡片中带有 ⚠ 标记的即为需要处理的项目。</div>' if (no_repo or need_transfer) else ''}
 </div>
 
 <footer>
