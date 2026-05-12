@@ -173,7 +173,8 @@ for p in unique:
     if not transferred and is_student:
         print(f"   NOT transferred (student): #{p['num']} repo={p.get('repo','')}")
 need_transfer = [p for p in unique if not p['transferred'] and p['is_student_repo']]
-print(f"   need transfer: {len(need_transfer)} student repos not yet in org")
+submitted_count = sum(1 for p in unique if p['transferred'])
+print(f"   submitted: {submitted_count}, need transfer: {len(need_transfer)}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 4. Hand-curated clean descriptions (keyed by issue number)
@@ -533,10 +534,11 @@ footer{{text-align:center;padding:26px 20px;font-size:.78rem;color:var(--txt2);b
 </section>
 
 <div class="stats">
-  <div class="stat"><div class="n">{len(unique)}</div><div class="l">结课项目</div></div>
-  <div class="stat"><div class="n">{len(all_names)}</div><div class="l">参与学生</div></div>
-  <div class="stat"><div class="n">{len(unique)}</div><div class="l">研究小组</div></div>
   <div class="stat"><div class="n">{len(students)}</div><div class="l">课程总人数</div></div>
+  <div class="stat"><div class="n">{len(issues)}</div><div class="l">总项目（Issue）</div></div>
+  <div class="stat"><div class="n">{len(all_names)}</div><div class="l">已发现结课作业人数</div></div>
+  <div class="stat"><div class="n">{len(unique)}</div><div class="l">已注册项目</div></div>
+  <div class="stat"><div class="n">{submitted_count}</div><div class="l">已提交项目</div></div>
 </div>
 
 <div class="fb" id="fb">
