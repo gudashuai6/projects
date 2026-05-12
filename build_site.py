@@ -177,7 +177,8 @@ for p in unique:
         print(f"   NOT transferred (student): #{p['num']} repo={p.get('repo','')}")
 need_transfer = [p for p in unique if not p['transferred'] and p['is_student_repo']]
 no_repo = [p for p in unique if not p['has_repo']]
-submitted_count = sum(1 for p in unique if p['transferred'])
+submitted = [p for p in unique if p['transferred']]
+submitted_count = len(submitted)
 print(f"   submitted: {submitted_count}, need transfer: {len(need_transfer)}, no repo: {len(no_repo)}")
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -438,97 +439,137 @@ for p in unique:
         all_names.add(m['name'])
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 11. HTML
+# 11. Shared CSS, nav, footer (non-f-strings — no brace escaping needed)
 # ══════════════════════════════════════════════════════════════════════════════
-page = f'''<!DOCTYPE html>
+CSS = r'''@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+:root{--pri:#1a5276;--pri-l:#2980b9;--acc:#27ae60;--gold:#f39c12;--bg:#f8f9fa;--card:#fff;--txt:#2c3e50;--txt2:#636e72;--bdr:#e0e6ed;--shd:0 2px 12px rgba(0,0,0,.08);--r:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+
+.hero{background:linear-gradient(135deg,#1a5276 0%,#2980b9 50%,#1abc9c 100%);color:#fff;padding:68px 24px 52px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 50%,rgba(255,255,255,.08) 0%,transparent 50%);pointer-events:none}
+.hero h1{font-size:clamp(1.7rem,4vw,2.5rem);font-weight:700;margin-bottom:8px;letter-spacing:1px}
+.hero .sub{font-size:clamp(.9rem,1.8vw,1.05rem);font-weight:300;opacity:.92;max-width:680px;margin:0 auto 18px}
+.hero .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.hero .badge{background:rgba(255,255,255,.18);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.25);padding:5px 14px;border-radius:18px;font-size:.78rem;font-weight:500}
+
+.nav{display:flex;justify-content:center;gap:4px;padding:0;background:#fff;border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.nav a{padding:10px 18px;font-size:.84rem;color:var(--txt2);text-decoration:none;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.nav a:hover{color:var(--pri)}
+.nav a.on{color:var(--pri);font-weight:600;border-bottom-color:var(--pri)}
+
+.stats{display:flex;justify-content:center;gap:44px;padding:22px;background:#fff;border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.stat .n{font-size:1.6rem;font-weight:700;color:var(--pri)}.stat .l{font-size:.78rem;color:var(--txt2);margin-top:2px}
+
+.fb{max-width:1200px;margin:26px auto 0;padding:0 20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.fbtn{border:1.5px solid var(--bdr);background:#fff;color:var(--txt2);padding:6px 16px;border-radius:18px;cursor:pointer;font-size:.82rem;font-family:inherit;transition:all .2s}
+.fbtn:hover{border-color:var(--pri-l);color:var(--pri)}.fbtn.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+
+.ctn{max-width:1200px;margin:22px auto 48px;padding:0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--shd);overflow:hidden;transition:transform .18s,box-shadow .18s;display:flex;flex-direction:column}
+.card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.card-top{padding:16px 16px 0;display:flex;align-items:flex-start;gap:10px}
+.card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0;color:#fff}
+.card-top .info{flex:1;min-width:0}
+.card-top .title{font-size:.9rem;font-weight:700;color:var(--txt);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}
+
+.tags{display:flex;gap:5px;flex-wrap:wrap;padding:0 16px 8px}
+.tag{font-size:.68rem;padding:2px 8px;border-radius:10px;background:#eaf4fc;color:var(--pri-l);font-weight:500}
+.tag.r{background:#eaf7ed;color:#27ae60}.tag.py{background:#fef3e2;color:#e67e22}
+
+.card-body{padding:0 16px 10px;flex:1}
+.card-body .desc{font-size:.8rem;color:var(--txt2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
+
+.card-mem{padding:0 16px 10px;display:flex;flex-wrap:wrap;gap:4px 8px}
+.mlink{font-size:.74rem;text-decoration:none;border-radius:10px;padding:2px 8px;transition:background .15s;white-space:nowrap}
+.mlink.leader{background:#fef9e7;color:#b7950b;font-weight:600;border:1px solid #f9e79f}
+.mlink.leader:hover{background:#fdebd0}
+.mlink.member{background:#eaf2f8;color:#2c3e50;border:1px solid transparent}
+.mlink.member:hover{background:#d6eaf8;border-color:#aed6f1}
+
+.transfer-warn{margin:0 16px;padding:6px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:.76rem;color:#856404;font-weight:500}
+.transfer-no-repo{background:#f8d7da;border-color:#f5c6cb;color:#721c24}
+
+.card-foot{padding:8px 16px 12px;border-top:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;gap:6px}
+.clinks{display:flex;gap:8px;align-items:center}
+.clink{display:inline-flex;align-items:center;gap:3px;font-size:.74rem;color:var(--pri-l);text-decoration:none;font-weight:500;white-space:nowrap;transition:color .15s}
+.clink:hover{color:var(--acc)}.clink.doi{color:#e67e22;font-weight:600}.clink.doi:hover{color:#d35400}
+.clink.issue{color:var(--txt2);font-weight:400}.clink.issue:hover{color:var(--pri)}
+.clink svg{width:13px;height:13px;fill:currentColor}
+
+.cat-soil .card-icon{background:#8d6e63}.cat-plant .card-icon{background:#66bb6a}.cat-env .card-icon{background:#42a5f5}.cat-micro .card-icon{background:#ab47bc}.cat-data .card-icon{background:#ef5350}
+
+.reminder{padding:12px 16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;font-size:.86rem;color:#856404;margin-bottom:16px;line-height:1.5}.reminder a{color:#856404;font-weight:600}
+.reminder-danger{padding:12px 16px;background:#f8d7da;border:1px solid #f5c6cb;border-radius:8px;font-size:.86rem;color:#721c24;margin-bottom:16px;line-height:1.5}.reminder-danger a{color:#721c24;font-weight:600}
+.ns{max-width:1200px;margin:0 auto 48px;padding:0 20px}
+.ns h2{font-size:1.05rem;color:var(--pri);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--pri-l)}
+.ns-tbl{width:100%;border-collapse:collapse;font-size:.84rem}.ns-tbl th{background:#f0f4f8;padding:7px 12px;text-align:left;font-weight:600;border-bottom:2px solid var(--bdr)}.ns-tbl td{padding:6px 12px;border-bottom:1px solid var(--bdr)}.ns-tbl tr:hover td{background:#f8f9fa}
+.ns-tbl a{color:var(--pri-l);text-decoration:none}.ns-tbl a:hover{text-decoration:underline}
+.ns-tbl .col-num{width:60px}.ns-tbl .col-status{width:120px}
+
+footer{text-align:center;padding:26px 20px;font-size:.78rem;color:var(--txt2);border-top:1px solid var(--bdr);background:#fff}footer a{color:var(--pri-l);text-decoration:none}
+
+@media(max-width:600px){.hero{padding:44px 16px 32px}.grid{grid-template-columns:1fr}.stats{gap:18px}.stat .n{font-size:1.3rem}.nav a{padding:8px 12px;font-size:.8rem}}
+'''
+
+def nav(active):
+    """Navigation bar. active: 'main', 'submitted', 'pending', 'not_submitted'."""
+    links = [
+        ('main', '主页', 'index.html'),
+        ('submitted', '已提交项目', 'submitted.html'),
+        ('pending', '待提交项目', 'pending.html'),
+        ('not_submitted', '未提交名单', 'not_submitted.html'),
+    ]
+    items = ''.join(
+        f'<a href="{href}" class="{"on" if k == active else ""}">{label}</a>'
+        for k, label, href in links)
+    return f'<nav class="nav">{items}</nav>'
+
+FOOTER = f'''<footer>
+  <p>D2RS 2026 Spring — 数据驱动的可重复性研究 &copy; 2026</p>
+  <p style="margin-top:5px"><a href="https://github.com/D2RS-2026spring/projects" target="_blank">GitHub 项目主页</a> &nbsp;|&nbsp; <a href="https://github.com/D2RS-2026spring" target="_blank">课程组织</a></p>
+  <p style="margin-top:5px;color:#aaa">页面更新于 {UPDATE_TIME}</p>
+</footer>'''
+
+def wrap(title, body_inner):
+    """Wrap content in full HTML page with shared CSS and footer."""
+    return f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>D2RS 2026 春季 — 数据驱动的可重复性研究 结课作品展</title>
+<title>{E.escape(title)}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
-:root{{--pri:#1a5276;--pri-l:#2980b9;--acc:#27ae60;--gold:#f39c12;--bg:#f8f9fa;--card:#fff;--txt:#2c3e50;--txt2:#636e72;--bdr:#e0e6ed;--shd:0 2px 12px rgba(0,0,0,.08);--r:12px}}
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:'Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}}
-
-/* hero */
-.hero{{background:linear-gradient(135deg,#1a5276 0%,#2980b9 50%,#1abc9c 100%);color:#fff;padding:68px 24px 52px;text-align:center;position:relative;overflow:hidden}}
-.hero::before{{content:'';position:absolute;inset:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 50%,rgba(255,255,255,.08) 0%,transparent 50%);pointer-events:none}}
-.hero h1{{font-size:clamp(1.7rem,4vw,2.5rem);font-weight:700;margin-bottom:8px;letter-spacing:1px}}
-.hero .sub{{font-size:clamp(.9rem,1.8vw,1.05rem);font-weight:300;opacity:.92;max-width:680px;margin:0 auto 18px}}
-.hero .badges{{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}}
-.hero .badge{{background:rgba(255,255,255,.18);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.25);padding:5px 14px;border-radius:18px;font-size:.78rem;font-weight:500}}
-
-/* stats */
-.stats{{display:flex;justify-content:center;gap:44px;padding:22px;background:#fff;border-bottom:1px solid var(--bdr);flex-wrap:wrap}}
-.stat .n{{font-size:1.6rem;font-weight:700;color:var(--pri)}}.stat .l{{font-size:.78rem;color:var(--txt2);margin-top:2px}}
-
-/* filters */
-.fb{{max-width:1200px;margin:26px auto 0;padding:0 20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}}
-.fb{{ /* alias */}}
-.fbtn{{border:1.5px solid var(--bdr);background:#fff;color:var(--txt2);padding:6px 16px;border-radius:18px;cursor:pointer;font-size:.82rem;font-family:inherit;transition:all .2s}}
-.fbtn:hover{{border-color:var(--pri-l);color:var(--pri)}}.fbtn.on{{background:var(--pri);color:#fff;border-color:var(--pri)}}
-
-/* grid */
-.ctn{{max-width:1200px;margin:22px auto 48px;padding:0 20px}}
-.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}}
-
-/* card */
-.card{{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--shd);overflow:hidden;transition:transform .18s,box-shadow .18s;display:flex;flex-direction:column}}
-.card:hover{{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.12)}}
-.card-top{{padding:16px 16px 0;display:flex;align-items:flex-start;gap:10px}}
-.card-icon{{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0;color:#fff}}
-.card-top .info{{flex:1;min-width:0}}
-.card-top .title{{font-size:.9rem;font-weight:700;color:var(--txt);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}}
-
-/* tags */
-.tags{{display:flex;gap:5px;flex-wrap:wrap;padding:0 16px 8px}}
-.tag{{font-size:.68rem;padding:2px 8px;border-radius:10px;background:#eaf4fc;color:var(--pri-l);font-weight:500}}
-.tag.r{{background:#eaf7ed;color:#27ae60}}.tag.py{{background:#fef3e2;color:#e67e22}}
-
-/* desc */
-.card-body{{padding:0 16px 10px;flex:1}}
-.card-body .desc{{font-size:.8rem;color:var(--txt2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}}
-
-/* members */
-.card-mem{{padding:0 16px 10px;display:flex;flex-wrap:wrap;gap:4px 8px}}
-.mlink{{font-size:.74rem;text-decoration:none;border-radius:10px;padding:2px 8px;transition:background .15s;white-space:nowrap}}
-.mlink.leader{{background:#fef9e7;color:#b7950b;font-weight:600;border:1px solid #f9e79f}}
-.mlink.leader:hover{{background:#fdebd0}}
-.mlink.member{{background:#eaf2f8;color:#2c3e50;border:1px solid transparent}}
-.mlink.member:hover{{background:#d6eaf8;border-color:#aed6f1}}
-.mlink.more{{background:#f4f6f7;color:#95a5a6;border:1px dashed #bdc3c7;font-weight:500}}
-
-/* transfer warning */
-.transfer-warn{{margin:0 16px;padding:6px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:.76rem;color:#856404;font-weight:500}}
-.transfer-no-repo{{background:#f8d7da;border-color:#f5c6cb;color:#721c24}}
-
-/* footer links */
-.card-foot{{padding:8px 16px 12px;border-top:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;gap:6px}}
-.clinks{{display:flex;gap:8px;align-items:center}}
-.clink{{display:inline-flex;align-items:center;gap:3px;font-size:.74rem;color:var(--pri-l);text-decoration:none;font-weight:500;white-space:nowrap;transition:color .15s}}
-.clink:hover{{color:var(--acc)}}.clink.doi{{color:#e67e22;font-weight:600}}.clink.doi:hover{{color:#d35400}}
-.clink.issue{{color:var(--txt2);font-weight:400}}.clink.issue:hover{{color:var(--pri)}}
-.clink svg{{width:13px;height:13px;fill:currentColor}}
-
-/* category colors */
-.cat-soil .card-icon{{background:#8d6e63}}.cat-plant .card-icon{{background:#66bb6a}}.cat-env .card-icon{{background:#42a5f5}}.cat-micro .card-icon{{background:#ab47bc}}.cat-data .card-icon{{background:#ef5350}}
-
-/* not-submitted */
-.reminder{{padding:12px 16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;font-size:.86rem;color:#856404;margin-bottom:16px;line-height:1.5}}.reminder a{{color:#856404;font-weight:600}}
-.ns{{max-width:1200px;margin:0 auto 48px;padding:0 20px}}
-.ns h2{{font-size:1.05rem;color:var(--pri);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--pri-l)}}
-.ns-tbl{{width:100%;border-collapse:collapse;font-size:.84rem}}.ns-tbl th{{background:#f0f4f8;padding:7px 12px;text-align:left;font-weight:600;border-bottom:2px solid var(--bdr)}}.ns-tbl td{{padding:6px 12px;border-bottom:1px solid var(--bdr)}}.ns-tbl tr:hover td{{background:#f8f9fa}}
-.ns-tbl a{{color:var(--pri-l);text-decoration:none}}.ns-tbl a:hover{{text-decoration:underline}}
-
-footer{{text-align:center;padding:26px 20px;font-size:.78rem;color:var(--txt2);border-top:1px solid var(--bdr);background:#fff}}footer a{{color:var(--pri-l);text-decoration:none}}
-
-@media(max-width:600px){{.hero{{padding:44px 16px 32px}}.grid{{grid-template-columns:1fr}}.stats{{gap:18px}}.stat .n{{font-size:1.3rem}}}}
+{CSS}
 </style>
 </head>
 <body>
+{body_inner}
+{FOOTER}
+</body>
+</html>'''
 
+# ══════════════════════════════════════════════════════════════════════════════
+# 12. Page 1: Main showcase (index.html)
+# ══════════════════════════════════════════════════════════════════════════════
+stats_html = f'''
+<div class="stats">
+  <div class="stat"><div class="n">{len(students)}</div><div class="l">课程总人数</div></div>
+  <div class="stat"><div class="n">{len(issues)}</div><div class="l">总项目（Issue）</div></div>
+  <div class="stat"><div class="n">{len(all_names)}</div><div class="l">已发现结课作业人数</div></div>
+  <div class="stat"><div class="n">{len(unique)}</div><div class="l">已注册项目</div></div>
+  <div class="stat"><div class="n">{submitted_count}</div><div class="l">已提交项目</div></div>
+</div>'''
+
+reminders = ''
+if not_sub:
+    reminders += f'<div class="reminder"><strong>⚠ 未提交：</strong>{len(not_sub)} 位同学尚未提交结课作业，详见 <a href="not_submitted.html">未提交名单</a></div>\n'
+if no_repo or need_transfer:
+    reminders += f'<div class="reminder-danger"><strong>⚠ 待处理：</strong>{len(no_repo)} 个项目未提供仓库链接，{len(need_transfer)} 个项目的仓库仍在个人账号下，详见 <a href="pending.html">待提交项目</a></div>\n'
+
+index_body = f'''
 <section class="hero">
   <h1>数据驱动的可重复性研究</h1>
   <p class="sub">Data Driven Reproducible Study (D2RS) — 2026 春季学期<br>学生结课作品展示</p>
@@ -539,15 +580,8 @@ footer{{text-align:center;padding:26px 20px;font-size:.78rem;color:var(--txt2);b
     <span class="badge">开放科学</span>
   </div>
 </section>
-
-<div class="stats">
-  <div class="stat"><div class="n">{len(students)}</div><div class="l">课程总人数</div></div>
-  <div class="stat"><div class="n">{len(issues)}</div><div class="l">总项目（Issue）</div></div>
-  <div class="stat"><div class="n">{len(all_names)}</div><div class="l">已发现结课作业人数</div></div>
-  <div class="stat"><div class="n">{len(unique)}</div><div class="l">已注册项目</div></div>
-  <div class="stat"><div class="n">{submitted_count}</div><div class="l">已提交项目</div></div>
-</div>
-
+{nav('main')}
+{stats_html}
 <div class="fb" id="fb">
   <button class="fbtn on" data-f="all">全部</button>
   <button class="fbtn" data-f="soil">土壤与生态</button>
@@ -556,29 +590,12 @@ footer{{text-align:center;padding:26px 20px;font-size:.78rem;color:var(--txt2);b
   <button class="fbtn" data-f="micro">微生物与生物信息</button>
   <button class="fbtn" data-f="data">数据科学与遥感</button>
 </div>
-
-<div class="ctn"><div class="grid" id="g">
+<div class="ctn">
+  {reminders}
+  <div class="grid" id="g">
 {cards_html}
-</div></div>
-
-<div class="ns">
-  <div class="reminder">
-    <strong>⚠ 提醒：</strong>以下同学尚未在 <a href="https://github.com/D2RS-2026spring/projects/issues" target="_blank">projects 仓库</a> 中提交结课作业 issue，请尽快提交。
   </div>
-  <h2>尚未提交作业的同学（{len(not_sub)} 人）</h2>
-  <table class="ns-tbl">
-    <thead><tr><th>学号</th><th>姓名</th><th>GitHub</th></tr></thead>
-    <tbody>{ns_rows}</tbody>
-  </table>
-  {f'<div class="reminder" style="margin-top:20px"><strong>⚠ 提醒：</strong>以下 {len(no_repo)} 个项目未提供 GitHub 仓库链接，{len(need_transfer)} 个项目的仓库仍在个人账号下，请尽快移交到 <a href="https://github.com/D2RS-2026spring" target="_blank">D2RS-2026spring 组织</a>。卡片中带有 ⚠ 标记的即为需要处理的项目。</div>' if (no_repo or need_transfer) else ''}
 </div>
-
-<footer>
-  <p>D2RS 2026 Spring — 数据驱动的可重复性研究 &copy; 2026</p>
-  <p style="margin-top:5px"><a href="https://github.com/D2RS-2026spring/projects" target="_blank">GitHub 项目主页</a> &nbsp;|&nbsp; <a href="https://github.com/D2RS-2026spring" target="_blank">课程组织</a></p>
-  <p style="margin-top:5px;color:#aaa">页面更新于 {UPDATE_TIME}</p>
-</footer>
-
 <script>
 document.getElementById('fb').addEventListener('click',e=>{{
   const b=e.target.closest('.fbtn');if(!b)return;
@@ -589,16 +606,121 @@ document.getElementById('fb').addEventListener('click',e=>{{
     c.style.display=(f==='all'||c.dataset.cat===f)?'':'none';
   }});
 }});
-</script>
-</body>
-</html>'''
+</script>'''
 
-with open('/Users/gaoch/GitHub/D2RS-2026spring/projects/index.html', 'w') as f:
-    f.write(page)
+# ══════════════════════════════════════════════════════════════════════════════
+# 13. Page 2: Not-submitted students (not_submitted.html)
+# ══════════════════════════════════════════════════════════════════════════════
+ns_body = f'''
+<section class="hero" style="padding:40px 24px 32px">
+  <h1>尚未提交作业的同学</h1>
+  <p class="sub">共 {len(not_sub)} 位同学尚未在 projects 仓库中提交结课作业 issue</p>
+</section>
+{nav('not_submitted')}
+{stats_html}
+<div class="ns">
+  <div class="reminder">
+    <strong>⚠ 提醒：</strong>以下同学尚未在 <a href="https://github.com/D2RS-2026spring/projects/issues" target="_blank">projects 仓库</a> 中提交结课作业 issue，请尽快提交。
+  </div>
+  <table class="ns-tbl">
+    <thead><tr><th>学号</th><th>姓名</th><th>GitHub</th></tr></thead>
+    <tbody>{ns_rows}</tbody>
+  </table>
+</div>'''
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 14. Page 3: Submitted projects (submitted.html)
+# ══════════════════════════════════════════════════════════════════════════════
+sub_rows = ''
+for p in submitted:
+    e = E.escape
+    title = e(p['title'][:60])
+    members = ', '.join(f'{"★ " if m["leader"] else ""}{e(m["name"])}' for m in p['members'])
+    repo_link = f'<a href="https://github.com/{e(p["repo"])}" target="_blank">{e(p["repo"].split("/")[1])}</a>'
+    doi_link = f'<a href="https://doi.org/{e(p["doi"])}" target="_blank">DOI</a>' if p.get('doi') else '—'
+    issue_link = f'<a href="https://github.com/D2RS-2026spring/projects/issues/{p["num"]}" target="_blank">#{p["num"]}</a>'
+    sub_rows += f'<tr><td class="col-num">{issue_link}</td><td>{title}</td><td style="font-size:.78rem">{members}</td><td>{repo_link}</td><td>{doi_link}</td></tr>\n'
+
+submitted_body = f'''
+<section class="hero" style="padding:40px 24px 32px">
+  <h1>已提交项目</h1>
+  <p class="sub">共 {submitted_count} 个项目已成功提交到 D2RS-2026spring 组织</p>
+</section>
+{nav('submitted')}
+{stats_html}
+<div class="ns">
+  <table class="ns-tbl">
+    <thead><tr><th class="col-num">Issue</th><th>项目名称</th><th>小组成员</th><th>仓库</th><th>DOI</th></tr></thead>
+    <tbody>{sub_rows}</tbody>
+  </table>
+</div>'''
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 15. Page 4: Pending projects (pending.html)
+# ══════════════════════════════════════════════════════════════════════════════
+nr_rows = ''
+for p in no_repo:
+    e = E.escape
+    title = e(p['title'][:60])
+    members = ', '.join(f'{"★ " if m["leader"] else ""}{e(m["name"])}' for m in p['members'])
+    issue_link = f'<a href="https://github.com/D2RS-2026spring/projects/issues/{p["num"]}" target="_blank">#{p["num"]}</a>'
+    nr_rows += f'<tr><td class="col-num">{issue_link}</td><td>{title}</td><td style="font-size:.78rem">{members}</td></tr>\n'
+
+nt_rows = ''
+for p in need_transfer:
+    e = E.escape
+    title = e(p['title'][:60])
+    members = ', '.join(f'{"★ " if m["leader"] else ""}{e(m["name"])}' for m in p['members'])
+    repo_link = f'<a href="https://github.com/{e(p["repo"])}" target="_blank">{e(p["repo"])}</a>'
+    issue_link = f'<a href="https://github.com/D2RS-2026spring/projects/issues/{p["num"]}" target="_blank">#{p["num"]}</a>'
+    nt_rows += f'<tr><td class="col-num">{issue_link}</td><td>{title}</td><td style="font-size:.78rem">{members}</td><td>{repo_link}</td></tr>\n'
+
+pending_body = f'''
+<section class="hero" style="padding:40px 24px 32px">
+  <h1>待提交项目</h1>
+  <p class="sub">以下项目尚未完成提交，请尽快处理</p>
+</section>
+{nav('pending')}
+{stats_html}
+<div class="ns">
+  <div class="reminder-danger">
+    <strong>⚠ 未提供仓库链接：</strong>以下 {len(no_repo)} 个项目在注册时未提供 GitHub 仓库链接，请尽快补充。
+  </div>
+  <table class="ns-tbl">
+    <thead><tr><th class="col-num">Issue</th><th>项目名称</th><th>小组成员</th></tr></thead>
+    <tbody>{nr_rows}</tbody>
+  </table>
+
+  <div class="reminder" style="margin-top:32px">
+    <strong>⚠ 仓库未移交：</strong>以下 {len(need_transfer)} 个项目的仓库仍在个人账号下，请尽快移交到 <a href="https://github.com/D2RS-2026spring" target="_blank">D2RS-2026spring 组织</a>。
+  </div>
+  <table class="ns-tbl">
+    <thead><tr><th class="col-num">Issue</th><th>项目名称</th><th>小组成员</th><th>当前仓库</th></tr></thead>
+    <tbody>{nt_rows}</tbody>
+  </table>
+</div>'''
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 16. Write files
+# ══════════════════════════════════════════════════════════════════════════════
+BASE = '/Users/gaoch/GitHub/D2RS-2026spring/projects'
+
+with open(f'{BASE}/index.html', 'w') as f:
+    f.write(wrap('D2RS 2026 春季 — 结课作品展', index_body))
+
+with open(f'{BASE}/not_submitted.html', 'w') as f:
+    f.write(wrap('D2RS 2026 — 未提交名单', ns_body))
+
+with open(f'{BASE}/submitted.html', 'w') as f:
+    f.write(wrap('D2RS 2026 — 已提交项目', submitted_body))
+
+with open(f'{BASE}/pending.html', 'w') as f:
+    f.write(wrap('D2RS 2026 — 待提交项目', pending_body))
 
 cats = {}
 for p in unique:
     cats[p['cat']] = cats.get(p['cat'], 0) + 1
 print(f"✅ {len(unique)} projects | {len(all_names)} students")
+print(f"   Pages: index.html, submitted.html, pending.html, not_submitted.html")
 for c, n in sorted(cats.items(), key=lambda x: -x[1]):
     print(f"   {c}: {n}")
